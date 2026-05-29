@@ -1,13 +1,10 @@
-import Navbar from './components/Navbar/Navbar'
-import Hero from './components/Hero/Hero'
+import { AuthProvider } from './context/AuthContext'
+import AppRouter from './router/AppRouter'
 
 export default function App() {
   return (
-    <>
-      <Navbar />
-      <main>
-        <Hero />
-      </main>
-    </>
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
   )
 }
