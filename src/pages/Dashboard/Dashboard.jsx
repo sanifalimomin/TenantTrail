@@ -59,8 +59,12 @@ export default function Dashboard() {
           />
         </div>
         <div className={s.dashNavRight}>
-          <div className={s.dashAvatar}>{initials}</div>
-          <span className={s.dashUsername}>{user?.name?.split(' ')[0]}</span>
+          <button className={s.dashAvatar} onClick={() => navigate('/profile')} aria-label="Your profile">
+            {initials}
+          </button>
+          <button className={s.dashUsername} onClick={() => navigate('/profile')}>
+            {user?.name?.split(' ')[0]}
+          </button>
           <button className={s.dashSignout} onClick={handleSignOut}>Sign out</button>
         </div>
       </nav>
@@ -107,7 +111,7 @@ export default function Dashboard() {
         ) : (
           <div className={s.aptGrid}>
             {filtered.map(apt => (
-              <div key={apt.id} className={s.aptCard}>
+              <div key={apt.id} className={s.aptCard} onClick={() => navigate(`/apartment/${apt.id}`)}>
                 <div className={s.aptImg} style={{ background: apt.gradient }}>
                   <div className={s.aptRatingBadge}>
                     <span className={s.badgeStar}>★</span> {apt.rating.toFixed(1)}

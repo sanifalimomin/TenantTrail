@@ -5,6 +5,8 @@ import Hero from '../components/Hero/Hero'
 import SignIn from '../pages/SignIn/SignIn'
 import SignUp from '../pages/SignUp/SignUp'
 import Dashboard from '../pages/Dashboard/Dashboard'
+import ApartmentDetail from '../pages/ApartmentDetail/ApartmentDetail'
+import UserProfile from '../pages/UserProfile/UserProfile'
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth()
@@ -30,6 +32,8 @@ export default function AppRouter() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/apartment/:id" element={<ProtectedRoute><ApartmentDetail /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
