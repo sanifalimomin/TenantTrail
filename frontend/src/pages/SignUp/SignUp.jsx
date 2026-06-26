@@ -29,11 +29,11 @@ export default function SignUp() {
     return e
   }
 
-  function handleSubmit(evt) {
+  async function handleSubmit(evt) {
     evt.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) return setErrors(errs)
-    const res = signUp(form.name.trim(), form.email.trim(), form.password)
+    const res = await signUp(form.name.trim(), form.email.trim(), form.password)
     if (res.ok) navigate('/dashboard')
     else setErrors({ general: res.error })
   }

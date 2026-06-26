@@ -9,7 +9,8 @@ import ApartmentDetail from '../pages/ApartmentDetail/ApartmentDetail'
 import UserProfile from '../pages/UserProfile/UserProfile'
 
 function ProtectedRoute({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#6b7280' }}>Loading…</div>
   return user ? children : <Navigate to="/signin" replace />
 }
 

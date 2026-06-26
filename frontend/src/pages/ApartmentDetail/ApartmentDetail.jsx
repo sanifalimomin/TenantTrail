@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
-import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useReviews } from '../../context/ReviewsContext'
-import { APARTMENTS } from '../../data/mockData'
+import { apiFetch } from '../../data/api'
+import { normalizeApartment } from '../../utils/apartment'
 import { initialsOf, formatDate } from '../../utils/reviewValidation'
+import { optimizedImage } from '../../utils/image'
 import AppHeader from '../../components/AppHeader/AppHeader'
 import ReviewModal from '../../components/ReviewModal/ReviewModal'
 import useStyles from '../../styles/useStyles'
@@ -15,62 +16,29 @@ function Stars({ count }) {
 function ReviewCard({ review }) {
   const s = useStyles()
   const { user } = useAuth()
-  const { addComment } = useReviews()
-  const [open, setOpen] = useState(review.comments.length > 0)
-  const [comment, setComment] = useState('')
-
-  const isMine = user?.email === review.author.email
-
-  function submitComment() {
-    if (!comment.trim()) return
-    addComment(review.id, comment)
-    setComment('')
-    setOpen(true)
-  }
+  const isMine = user?.id === review.userId
 
   return (
     <div className={s.reviewItem}>
       <div className={s.reviewTop}>
-        <div className={s.appAvatar}>{initialsOf(review.author.name)}</div>
+        <div className={s.appAvatar}>{initialsOf(review.author)}</div>
         <div className={s.reviewMeta}>
           <div className={s.reviewAuthorRow}>
             <span>
-              <span className={s.reviewAuthor}>{review.author.name}</span>
+              <span className={s.reviewAuthor}>{review.author}</span>
               {isMine && <span className={s.reviewYouTag}>(you)</span>}
               <span className={s.reviewDate}> · {formatDate(review.date)}</span>
             </span>
             <span className={s.reviewStars}><Stars count={review.rating} /></span>
           </div>
-          <p className={s.reviewText}>{review.text}</p>
-
-          <button className={s.commentToggle} onClick={() => setOpen(o => !o)}>
-            💬 {review.comments.length} {review.comments.length === 1 ? 'comment' : 'comments'}
-          </button>
-
-          {open && (
-            <div className={s.commentBlock}>
-              {review.comments.map((c, i) => (
-                <div key={i} className={s.commentItem}>
-                  <div className={s.commentHead}>
-                    <span className={s.commentAuthor}>{c.author.name}</span>
-                    <span className={s.commentDate}>{formatDate(c.date)}</span>
-                  </div>
-                  <div className={s.commentText}>{c.text}</div>
-                </div>
-              ))}
-              <div className={s.commentForm}>
-                <input
-                  className={s.commentInput}
-                  placeholder="Write a comment ..."
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') submitComment() }}
-                />
-                <button className={s.replyBtn} onClick={submitComment} disabled={!comment.trim()}>
-                  Reply
-                </button>
-              </div>
-            </div>
+          <p className={s.reviewText}>{review.body}</p>
+          {review.imageUrl && (
+            <img
+              src={optimizedImage(review.imageUrl, 600)}
+              alt="Review attachment"
+              loading="lazy"
+              style={{ marginTop: 10, width: '100%', maxWidth: 360, borderRadius: 10, display: 'block' }}
+            />
           )}
         </div>
       </div>
@@ -82,16 +50,29 @@ export default function ApartmentDetail() {
   const s = useStyles()
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const { reviewsFor, addReview } = useReviews()
+  const [apartment, setApartment] = useState(null)
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
-  const apartment = APARTMENTS.find(a => a.id === Number(id))
-  const reviews = reviewsFor(Number(id))
+  const loadReviews = useCallback(() => {
+    return apiFetch(`/apartments/${id}/reviews`).then(setReviews)
+  }, [id])
 
-  // Live rating + breakdown derived from the current reviews.
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      apiFetch(`/apartments/${id}`).then(data => active && setApartment(normalizeApartment(data))),
+      loadReviews(),
+    ])
+      .catch(err => active && setError(err.status === 404 ? 'not-found' : 'Could not load this apartment.'))
+      .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [id, loadReviews])
+
   const { average, breakdown } = useMemo(() => {
-    const counts = [0, 0, 0, 0, 0] // index 0 -> 1 star ... index 4 -> 5 stars
+    const counts = [0, 0, 0, 0, 0]
     let sum = 0
     reviews.forEach(r => {
       counts[r.rating - 1] += 1
@@ -103,14 +84,35 @@ export default function ApartmentDetail() {
     }
   }, [reviews])
 
-  if (!user) return <Navigate to="/signin" replace />
-  if (!apartment) {
+  async function handleSubmit({ rating, text, imageUrl }) {
+    await apiFetch(`/apartments/${id}/reviews`, {
+      method: 'POST',
+      body: { rating, body: text, imageUrl },
+    })
+    setShowModal(false)
+    await loadReviews()
+  }
+
+  if (loading) {
+    return (
+      <div className={s.page}>
+        <AppHeader />
+        <div className={s.pageContent}>
+          <div className={s.profileEmpty}>Loading …</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error === 'not-found' || !apartment) {
     return (
       <div className={s.page}>
         <AppHeader />
         <div className={s.pageContent}>
           <button className={s.backLink} onClick={() => navigate('/dashboard')}>← Back to all apartments</button>
-          <div className={s.profileEmpty}>That apartment could not be found.</div>
+          <div className={s.profileEmpty}>
+            {error && error !== 'not-found' ? error : 'That apartment could not be found.'}
+          </div>
         </div>
       </div>
     )
@@ -118,11 +120,6 @@ export default function ApartmentDetail() {
 
   const maxCount = Math.max(1, ...breakdown)
   const roundedStars = Math.round(average)
-
-  function handleSubmit({ rating, text }) {
-    addReview({ apartmentId: apartment.id, rating, text })
-    setShowModal(false)
-  }
 
   return (
     <div className={s.page}>
@@ -134,7 +131,6 @@ export default function ApartmentDetail() {
 
         <div className={s.detailGrid}>
           <div className={s.detailMain}>
-            {/* Header */}
             <div className={s.detailHeaderCard}>
               <div>
                 <div className={s.detailName}>{apartment.name}</div>
@@ -153,7 +149,6 @@ export default function ApartmentDetail() {
               </div>
             </div>
 
-            {/* AI summary */}
             <div className={s.card}>
               <div className={s.aiHeader}>✦ AI-Generated Summary</div>
               <p className={s.aiText}>
@@ -172,7 +167,6 @@ export default function ApartmentDetail() {
               )}
             </div>
 
-            {/* Reviews */}
             <div className={s.card}>
               <div className={s.reviewsHeader}>
                 <div className={s.reviewsTitle}>Reviews ({reviews.length})</div>
@@ -188,7 +182,6 @@ export default function ApartmentDetail() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className={s.detailSidebar}>
             <div className={s.card}>
               <div className={s.sectionLabel}>Property Info</div>

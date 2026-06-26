@@ -1,17 +1,23 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { pool, nextId } from "../db.js";
+import { db, nextId } from "../app.js";
+import { auth } from "../middleware/auth.js";
 
 const router = Router();
 
-// Sign a JWT carrying the user's id. It is the proof the client sends back
-// on every request.
 export function signToken(id) {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
-// POST /api/auth/signup — hash the password, insert the user, return a token.
+function setAuthCookie(res, id) {
+  res.cookie("token", signToken(id), {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+}
+
 router.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
@@ -22,11 +28,12 @@ router.post("/signup", async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     const id = await nextId("users");
-    await pool.query(
+    await db.query(
       "INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)",
       [id, name, email, hash]
     );
-    res.status(201).json({ token: signToken(id), user: { id, name, email } });
+    setAuthCookie(res, id);
+    res.status(201).json({ user: { id, name, email } });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY")
       return res.status(400).json({ error: "Email already registered" });
@@ -35,20 +42,31 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// POST /api/auth/login — check the password, then sign a JWT.
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  const [[user]] = await pool.query(
+  const [[user]] = await db.query(
     "SELECT * FROM users WHERE email = ?",
     [email]
   );
   if (!user || !(await bcrypt.compare(password, user.password)))
     return res.status(401).json({ error: "Invalid credentials" });
 
-  res.json({
-    token: signToken(user.id),
-    user: { id: user.id, name: user.name, email: user.email },
-  });
+  setAuthCookie(res, user.id);
+  res.json({ user: { id: user.id, name: user.name, email: user.email } });
+});
+
+router.get("/me", auth, async (req, res) => {
+  const [[user]] = await db.query(
+    "SELECT id, name, email FROM users WHERE id = ?",
+    [req.user.id]
+  );
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json({ user });
+});
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ ok: true });
 });
 
 export default router;

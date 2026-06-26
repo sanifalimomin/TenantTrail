@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import useStyles from '../../styles/useStyles'
 
-// Interactive 1–5 star picker. `value` is the current rating, `onChange`
-// fires with the clicked star (1–5). Hover previews the rating.
 export default function StarRating({ value, onChange }) {
   const s = useStyles()
   const [hover, setHover] = useState(0)

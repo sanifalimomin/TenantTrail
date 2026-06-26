@@ -1,12 +1,10 @@
 import { Router } from "express";
-import { pool } from "../db.js";
+import { db } from "../app.js";
 
 const router = Router();
 
-// GET /api/apartments — the dashboard list, each card with its rating and
-// review count. LEFT JOIN keeps apartments with zero reviews.
 router.get("/apartments", async (req, res) => {
-  const [rows] = await pool.query(`
+  const [rows] = await db.query(`
     SELECT a.*,
            ROUND(AVG(r.rating), 1) AS rating,
            COUNT(r.id)             AS reviews
@@ -17,11 +15,8 @@ router.get("/apartments", async (req, res) => {
   res.json(rows);
 });
 
-// GET /api/apartments/:id — one apartment with its reviews.
 router.get("/apartments/:id", async (req, res) => {
-  const { id } = req.params;
-
-  const [[apartment]] = await pool.query(
+  const [[apartment]] = await db.query(
     `
     SELECT a.*,
            ROUND(AVG(r.rating), 1) AS rating,
@@ -31,24 +26,12 @@ router.get("/apartments/:id", async (req, res) => {
     WHERE a.id = ?
     GROUP BY a.id
   `,
-    [id]
+    [req.params.id]
   );
 
   if (!apartment) return res.status(404).json({ error: "Apartment not found" });
 
-  const [reviewList] = await pool.query(
-    `
-    SELECT r.id, r.rating, r.body, r.created,
-           u.id AS user_id, u.name AS author
-    FROM reviews r
-    JOIN users u ON u.id = r.user_id
-    WHERE r.apt_id = ?
-    ORDER BY r.created DESC
-  `,
-    [id]
-  );
-
-  res.json({ ...apartment, reviewList });
+  res.json(apartment);
 });
 
 export default router;

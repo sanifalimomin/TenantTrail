@@ -13,11 +13,11 @@ export default function SignIn() {
 
   if (user) return <Navigate to="/dashboard" replace />
 
-  function handleSubmit(evt) {
+  async function handleSubmit(evt) {
     evt.preventDefault()
     if (!email.trim()) return setError('Email is required.')
     if (!password) return setError('Password is required.')
-    const res = signIn(email.trim(), password)
+    const res = await signIn(email.trim(), password)
     if (res.ok) navigate('/dashboard')
     else setError(res.error)
   }
@@ -61,7 +61,6 @@ export default function SignIn() {
         </form>
 
         <p className={s.authSwitch}>Don&apos;t have an account? <Link to="/signup">Create one</Link></p>
-        <div className={s.demoBox}>Demo: <strong>alex@dal.ca / password123</strong></div>
       </div>
     </div>
   )

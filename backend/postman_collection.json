@@ -1,12 +1,11 @@
 {
   "info": {
     "name": "TenantTrails API",
-    "description": "TenantTrails API Collection.",
+    "description": "TenantTrails API collection. Auth uses an httpOnly cookie: run Signup or Login first and Postman's cookie jar stores the `token` cookie, which it then sends automatically on the protected requests below. No Authorization header is needed.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000" },
-    { "key": "token", "value": "" }
+    { "key": "baseUrl", "value": "http://localhost:3000" }
   ],
   "item": [
     {
@@ -18,17 +17,6 @@
     },
     {
       "name": "Signup",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "var json = pm.response.json();",
-              "if (json.token) pm.collectionVariables.set('token', json.token);"
-            ]
-          }
-        }
-      ],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -41,17 +29,6 @@
     },
     {
       "name": "Login",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "var json = pm.response.json();",
-              "if (json.token) pm.collectionVariables.set('token', json.token);"
-            ]
-          }
-        }
-      ],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -63,6 +40,20 @@
       }
     },
     {
+      "name": "Me (auth)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/auth/me"
+      }
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/auth/logout"
+      }
+    },
+    {
       "name": "List apartments",
       "request": {
         "method": "GET",
@@ -70,20 +61,24 @@
       }
     },
     {
-      "name": "Get apartment + reviews",
+      "name": "Get apartment",
       "request": {
         "method": "GET",
         "url": "{{baseUrl}}/api/apartments/3"
       }
     },
     {
+      "name": "List apartment reviews",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/apartments/3/reviews"
+      }
+    },
+    {
       "name": "Add review (auth)",
       "request": {
         "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"rating\": 5,\n  \"body\": \"Great building, fast maintenance.\"\n}"
@@ -92,7 +87,7 @@
       }
     },
     {
-      "name": "Add review — no token (expect 401)",
+      "name": "Add review — no cookie (expect 401)",
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -104,10 +99,35 @@
       }
     },
     {
+      "name": "Edit review (auth, owner)",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": 4,\n  \"body\": \"Updated: still solid, parking is tight.\"\n}"
+        },
+        "url": "{{baseUrl}}/api/reviews/1"
+      }
+    },
+    {
+      "name": "Delete review (auth, owner)",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/reviews/1"
+      }
+    },
+    {
+      "name": "Profile (auth)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/profile"
+      }
+    },
+    {
       "name": "Upload image (auth, form-data)",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
         "body": {
           "mode": "formdata",
           "formdata": [{ "key": "image", "type": "file", "src": [] }]

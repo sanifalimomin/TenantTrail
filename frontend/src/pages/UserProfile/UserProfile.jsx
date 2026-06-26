@@ -1,8 +1,7 @@
-import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useReviews } from '../../context/ReviewsContext'
-import { APARTMENTS } from '../../data/mockData'
+import { apiFetch } from '../../data/api'
 import { initialsOf } from '../../utils/reviewValidation'
 import AppHeader from '../../components/AppHeader/AppHeader'
 import ReviewModal from '../../components/ReviewModal/ReviewModal'
@@ -12,31 +11,38 @@ function stars(count) {
   return '★★★★★'.slice(0, count) + '☆☆☆☆☆'.slice(0, 5 - count)
 }
 
-function apartmentName(id) {
-  return APARTMENTS.find(a => a.id === id)?.name ?? 'Unknown apartment'
-}
-
 export default function UserProfile() {
   const s = useStyles()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { reviewsByUser, commentCountByUser, updateReview, deleteReview } = useReviews()
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
 
-  if (!user) return <Navigate to="/signin" replace />
+  const loadProfile = useCallback(() => {
+    return apiFetch('/profile')
+      .then(data => setReviews(data.reviews))
+      .catch(() => setError('Could not load your profile.'))
+  }, [])
 
-  const myReviews = reviewsByUser(user.email)
-  const commentCount = commentCountByUser(user.email)
+  useEffect(() => {
+    loadProfile().finally(() => setLoading(false))
+  }, [loadProfile])
 
-  function handleDelete(review) {
-    if (window.confirm('Delete this review? This cannot be undone.')) {
-      deleteReview(review.id)
-    }
+  async function handleDelete(review) {
+    if (!window.confirm('Delete this review? This cannot be undone.')) return
+    await apiFetch(`/reviews/${review.id}`, { method: 'DELETE' })
+    await loadProfile()
   }
 
-  function handleSaveEdit({ rating, text }) {
-    updateReview(editing.id, { rating, text })
+  async function handleSaveEdit({ rating, text, imageUrl }) {
+    await apiFetch(`/reviews/${editing.id}`, {
+      method: 'PUT',
+      body: { rating, body: text, imageUrl },
+    })
     setEditing(null)
+    await loadProfile()
   }
 
   return (
@@ -49,42 +55,42 @@ export default function UserProfile() {
 
         <div className={s.profileCard}>
           <div className={s.profileIdentity}>
-            <div className={s.profileAvatar}>{initialsOf(user.name)}</div>
+            <div className={s.profileAvatar}>{initialsOf(user?.name)}</div>
             <div>
-              <div className={s.profileName}>{user.name}</div>
-              <div className={s.profileEmail}>{user.email}</div>
+              <div className={s.profileName}>{user?.name}</div>
+              <div className={s.profileEmail}>{user?.email}</div>
             </div>
           </div>
           <div className={s.profileStats}>
             <div className={s.profileStat}>
-              <div className={s.profileStatNum}>{myReviews.length}</div>
+              <div className={s.profileStatNum}>{reviews.length}</div>
               <div className={s.profileStatLabel}>Reviews</div>
-            </div>
-            <div className={s.profileStat}>
-              <div className={s.profileStatNum}>{commentCount}</div>
-              <div className={s.profileStatLabel}>Comments</div>
             </div>
           </div>
         </div>
 
         <h2 className={s.profileSectionTitle}>Your Reviews</h2>
 
-        {myReviews.length === 0 ? (
+        {loading ? (
+          <div className={s.profileEmpty}>Loading …</div>
+        ) : error ? (
+          <div className={s.profileEmpty}>{error}</div>
+        ) : reviews.length === 0 ? (
           <div className={s.profileEmpty}>
             You haven&apos;t written any reviews yet. Browse apartments to add one.
           </div>
         ) : (
-          myReviews.map(review => (
+          reviews.map(review => (
             <div key={review.id} className={s.profileReviewCard}>
               <div>
-                <div className={s.profileReviewName}>{apartmentName(review.apartmentId)}</div>
+                <div className={s.profileReviewName}>{review.aptName}</div>
                 <div className={s.profileReviewStars}>{stars(review.rating)}</div>
-                <p className={s.profileReviewText}>{review.text}</p>
+                <p className={s.profileReviewText}>{review.body}</p>
               </div>
               <div className={s.profileReviewActions}>
                 <button
                   className={s.actionView}
-                  onClick={() => navigate(`/apartment/${review.apartmentId}`)}
+                  onClick={() => navigate(`/apartment/${review.aptId}`)}
                 >
                   View
                 </button>
@@ -99,7 +105,7 @@ export default function UserProfile() {
       {editing && (
         <ReviewModal
           mode="edit"
-          initial={{ rating: editing.rating, text: editing.text }}
+          initial={{ rating: editing.rating, text: editing.body, imageUrl: editing.imageUrl }}
           onSubmit={handleSaveEdit}
           onClose={() => setEditing(null)}
         />

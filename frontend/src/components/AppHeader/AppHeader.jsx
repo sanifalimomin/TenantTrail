@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext'
 import { initialsOf } from '../../utils/reviewValidation'
 import useStyles from '../../styles/useStyles'
 
-// Top navigation bar shared by the apartment detail and profile pages.
 export default function AppHeader() {
   const s = useStyles()
   const { user, signOut } = useAuth()

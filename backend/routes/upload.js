@@ -5,10 +5,8 @@ import { auth } from "../middleware/auth.js";
 
 const router = Router();
 
-// multer receives the file in memory; the SDK streams it to Cloudinary.
 const upload = multer({ storage: multer.memoryStorage() });
 
-// POST /api/upload — upload an image, return the CDN URL to store on a record.
 router.post("/upload", auth, upload.single("image"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No image uploaded" });
 
@@ -20,7 +18,7 @@ router.post("/upload", auth, upload.single("image"), async (req, res) => {
         )
         .end(req.file.buffer)
     );
-    res.json({ url: result.secure_url }); // secure_url is the CDN link
+    res.json({ url: result.secure_url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Upload failed" });

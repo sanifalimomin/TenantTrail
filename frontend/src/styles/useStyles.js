@@ -1,4 +1,4 @@
-import { css, injectGlobal } from '@emotion/css'
+﻿import { css, injectGlobal } from '@emotion/css'
 
 injectGlobal`
   *, *::before, *::after {
@@ -37,7 +37,6 @@ injectGlobal`
   }
 `
 
-// ── Design tokens ──────────────────────────────────────────
 const t = {
   blue:          '#2563eb',
   blueDark:      '#1d4ed8',
@@ -52,7 +51,6 @@ const t = {
   red:           '#ef4444',
 }
 
-// ── Navbar ─────────────────────────────────────────────────
 const navbar = css`
   display: flex;
   align-items: center;
@@ -93,7 +91,6 @@ const navBtn = css`
   &:hover { background: ${t.blueDark}; }
 `
 
-// ── Hero ───────────────────────────────────────────────────
 const hero = css`
   flex: 1;
   display: flex;
@@ -208,7 +205,6 @@ const featureDesc = css`
   margin: 0;
 `
 
-// ── Auth (shared by SignIn + SignUp) ───────────────────────
 const authPage = css`
   min-height: 100vh;
   display: flex;
@@ -332,7 +328,6 @@ const demoBox = css`
   }
 `
 
-// ── Dashboard ──────────────────────────────────────────────
 const dashboard = css`
   min-height: 100vh;
   background: ${t.bg};
@@ -637,7 +632,6 @@ const noResults = css`
   padding: 60px 20px;
 `
 
-// ── Shared app header (detail + profile) ───────────────────
 const appAvatar = css`
   width: 32px;
   height: 32px;
@@ -652,7 +646,6 @@ const appAvatar = css`
   flex-shrink: 0;
 `
 
-// ── Page shell ─────────────────────────────────────────────
 const page = css`
   min-height: 100vh;
   background: ${t.bg};
@@ -677,7 +670,6 @@ const backLink = css`
   &:hover { text-decoration: underline; }
 `
 
-// ── Apartment detail ───────────────────────────────────────
 const detailGrid = css`
   display: grid;
   grid-template-columns: 1fr 300px;
@@ -803,7 +795,6 @@ const issueTag = css`
   border-radius: 6px;
 `
 
-// ── Reviews list ───────────────────────────────────────────
 const reviewsHeader = css`
   display: flex;
   align-items: center;
@@ -972,7 +963,6 @@ const emptyReviews = css`
   padding: 28px 12px;
 `
 
-// ── Sidebar: property info + rating breakdown ──────────────
 const infoRow = css`
   display: flex;
   align-items: center;
@@ -1042,7 +1032,6 @@ const sidebarCta = css`
   &:hover { background: ${t.blueDark}; }
 `
 
-// ── Review modal ───────────────────────────────────────────
 const overlay = css`
   position: fixed;
   inset: 0;
@@ -1186,7 +1175,6 @@ const modalError = css`
   margin-top: 12px;
 `
 
-// ── User profile ───────────────────────────────────────────
 const profileCard = css`
   background: #fff;
   border: 1px solid ${t.border};
@@ -1341,19 +1329,14 @@ const profileEmpty = css`
   border-radius: 12px;
 `
 
-// ── Exported hook ──────────────────────────────────────────
 const styles = {
-  // Navbar
   navbar, navLogo, navCta, navSignin, navBtn,
-  // Hero
   hero, heroBadge, heroH1, heroSub, heroButtons,
   btnCreate, btnSigninOutline,
   heroFeatures, featureItem, featureIcon, featureTitle, featureDesc,
-  // Auth
   authPage, authCard, authLogo, authSubtitle,
   formGroup, formLabel, formInput, formError,
   btnPrimary, authSwitch, authSwitchLast, demoBox,
-  // Dashboard
   dashboard, dashNav, dashLogo, dashSearch, dashSearchIcon,
   dashNavRight, dashAvatar, dashUsername, dashSignout,
   dashContent, dashTitle, dashSubtitle,
@@ -1364,30 +1347,24 @@ const styles = {
   aptTags, tag, tagEmpty,
   aptFooter, reviewCount, starsRow, starFilled, starEmpty,
   noResults,
-  // Shared header + page shell
   appAvatar, page, pageContent, backLink,
-  // Apartment detail
   detailGrid, detailMain, detailSidebar, card, detailHeaderCard,
   detailName, detailAddress, detailDesc,
   detailScore, detailScoreNum, detailScoreStars, detailScoreCount,
   aiHeader, aiText, sectionLabel, issueTags, issueTag,
-  // Reviews
   reviewsHeader, reviewsTitle, writeReviewBtn,
   reviewItem, reviewTop, reviewMeta, reviewAuthorRow,
   reviewAuthor, reviewYouTag, reviewDate, reviewStars, reviewText,
   commentToggle, commentBlock, commentItem, commentHead,
   commentAuthor, commentDate, commentText,
   commentForm, commentInput, replyBtn, emptyReviews,
-  // Sidebar
   infoRow, infoKey, infoVal,
   breakdownRow, breakdownStar, breakdownBar, breakdownFill, breakdownCount,
   sidebarCta,
-  // Modal
   overlay, modal, modalHead, modalTitle, modalClose, modalLabel,
   starInput, starBtn, starBtnActive, starHint,
   modalTextarea, uploadBox, uploadHint,
   modalActions, modalCancel, modalSubmit, modalError,
-  // Profile
   profileCard, profileIdentity, profileAvatar, profileName, profileEmail,
   profileStats, profileStat, profileStatNum, profileStatLabel,
   profileSectionTitle, profileReviewCard, profileReviewName,

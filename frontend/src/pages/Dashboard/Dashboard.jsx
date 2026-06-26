@@ -1,47 +1,68 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { APARTMENTS, NEIGHBOURHOOD_OPTIONS, SORT_OPTIONS } from '../../data/mockData'
+import { apiFetch } from '../../data/api'
+import { normalizeApartment } from '../../utils/apartment'
 import useStyles from '../../styles/useStyles'
 
-const TOTAL_REVIEWS = APARTMENTS.reduce((sum, a) => sum + a.reviews, 0)
-const UNIQUE_HOODS = new Set(APARTMENTS.map(a => a.neighbourhood)).size
+const SORT_OPTIONS = ['Highest Rated', 'Most Reviews', 'Lowest Rated']
 
 export default function Dashboard() {
   const s = useStyles()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const [apartments, setApartments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
-  const [neighbourhood, setNeighbourhood] = useState(NEIGHBOURHOOD_OPTIONS[0])
+  const [neighbourhood, setNeighbourhood] = useState('All Neighbourhoods')
   const [sort, setSort] = useState(SORT_OPTIONS[0])
+
+  useEffect(() => {
+    apiFetch('/apartments')
+      .then(data => setApartments(data.map(normalizeApartment)))
+      .catch(() => setError('Could not load apartments.'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : '?'
 
-  function handleSignOut() {
-    signOut()
+  async function handleSignOut() {
+    await signOut()
     navigate('/')
   }
 
+  const neighbourhoodOptions = useMemo(
+    () => ['All Neighbourhoods', ...new Set(apartments.map(a => a.neighbourhood).filter(Boolean))],
+    [apartments],
+  )
+
+  const totalReviews = useMemo(
+    () => apartments.reduce((sum, a) => sum + a.reviews, 0),
+    [apartments],
+  )
+  const uniqueHoods = neighbourhoodOptions.length - 1
+
   const filtered = useMemo(() => {
-    let list = [...APARTMENTS]
+    let list = [...apartments]
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(a =>
-        a.name.toLowerCase().includes(q) ||
-        a.address.toLowerCase().includes(q) ||
-        a.neighbourhood.toLowerCase().includes(q)
+        a.name?.toLowerCase().includes(q) ||
+        a.address?.toLowerCase().includes(q) ||
+        a.neighbourhood?.toLowerCase().includes(q)
       )
     }
-    if (neighbourhood !== NEIGHBOURHOOD_OPTIONS[0]) {
+    if (neighbourhood !== 'All Neighbourhoods') {
       list = list.filter(a => a.neighbourhood === neighbourhood)
     }
     if (sort === 'Highest Rated') list.sort((a, b) => b.rating - a.rating)
     else if (sort === 'Lowest Rated') list.sort((a, b) => a.rating - b.rating)
     else if (sort === 'Most Reviews') list.sort((a, b) => b.reviews - a.reviews)
     return list
-  }, [search, neighbourhood, sort])
+  }, [apartments, search, neighbourhood, sort])
 
   return (
     <div className={s.dashboard}>
@@ -74,9 +95,9 @@ export default function Dashboard() {
         <p className={s.dashSubtitle}>Honest reviews from real tenants. Read before you rent.</p>
 
         <div className={s.filterPills}>
-          <div className={s.pill}>{APARTMENTS.length} apartments</div>
-          <div className={s.pill}>{TOTAL_REVIEWS} reviews</div>
-          <div className={s.pill}>{UNIQUE_HOODS} neighbourhoods</div>
+          <div className={s.pill}>{apartments.length} apartments</div>
+          <div className={s.pill}>{totalReviews} reviews</div>
+          <div className={s.pill}>{uniqueHoods} neighbourhoods</div>
         </div>
 
         <div className={s.filterDropdowns}>
@@ -86,7 +107,7 @@ export default function Dashboard() {
               value={neighbourhood}
               onChange={e => setNeighbourhood(e.target.value)}
             >
-              {NEIGHBOURHOOD_OPTIONS.map(n => <option key={n}>{n}</option>)}
+              {neighbourhoodOptions.map(n => <option key={n}>{n}</option>)}
             </select>
             <svg className={s.selectArrow} width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M2 4l4 4 4-4" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -106,7 +127,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className={s.noResults}>Loading apartments …</div>
+        ) : error ? (
+          <div className={s.noResults}>{error}</div>
+        ) : filtered.length === 0 ? (
           <div className={s.noResults}>No apartments match your search.</div>
         ) : (
           <div className={s.aptGrid}>
@@ -125,7 +150,7 @@ export default function Dashboard() {
                   </div>
                   <div className={s.aptTags}>
                     {apt.tags.length > 0
-                      ? apt.tags.map(t => <span key={t} className={s.tag}>{t}</span>)
+                      ? apt.tags.map(tg => <span key={tg} className={s.tag}>{tg}</span>)
                       : <span className={s.tagEmpty}>No AI summary yet</span>
                     }
                   </div>
